@@ -313,7 +313,7 @@ const styles = StyleSheet.create({
 
     placeBtn: {
         backgroundColor: "#4caf50",
-        padding: 14,
+        padding: 8,
         borderRadius: 10,
         alignItems: "center",
     },

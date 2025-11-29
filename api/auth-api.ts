@@ -7,6 +7,7 @@ export interface User {
   name?: string;
   phone?: string;
   address?: string;
+  password?: string;
 }
 
 // Kiểu dữ liệu response chung

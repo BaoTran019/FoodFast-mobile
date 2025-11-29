@@ -49,6 +49,9 @@ export default function RootLayout() {
 
           <Stack.Screen name="placeOrder" options={{ headerShown: false }} />
 
+          <Stack.Screen name="profile/changeInfo" options={{ headerShown: false }} />
+          <Stack.Screen name="profile/changePassword" options={{ headerShown: false }} />
+
         </Stack>
       </View>
       <StatusBar style="auto" />
