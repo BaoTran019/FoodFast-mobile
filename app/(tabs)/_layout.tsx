@@ -15,18 +15,23 @@ export default function TabLayout() {
         tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
         headerShown: false,
         tabBarButton: HapticTab,
-      }}>
+        tabBarStyle: {
+          height: 60, // chỉnh chiều cao thấp hơn, mặc định khoảng 60
+          paddingBottom: 5, // giảm padding dưới
+        },
+      }}
+    >
       <Tabs.Screen
-        name="index"
+        name="restaurants"
         options={{
-          title: 'Home',
+          title: 'Restaurants',
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
         }}
       />
       <Tabs.Screen
-        name="explore"
+        name="cart"
         options={{
-          title: 'Explore',
+          title: 'Cart',
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
         }}
       />
