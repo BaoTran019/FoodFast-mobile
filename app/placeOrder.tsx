@@ -82,10 +82,10 @@ export default function PlaceOrderScreen() {
                 quantity: i.quantity,
             })),
             totalPrice,
-            status: "pending",
+            status: "pending" as const,
             recipientName,
-            phone,
-            address,
+            recipientPhone: phone,      
+            shipping_address: address,
             createdAt: new Date().toISOString(),
         };
 
