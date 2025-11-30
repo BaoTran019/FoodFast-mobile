@@ -50,6 +50,10 @@ export default function ProfileScreen() {
         ]);
     };
 
+    const handeleMyOrders = () => {
+        router.push('../orders/myOrders')
+    }
+
     const handleChangeInfo = () => {
         router.push('../profile/changeInfo');
     };
@@ -76,6 +80,12 @@ export default function ProfileScreen() {
 
             {/* Options */}
             <View style={styles.optionsContainer}>
+                <TouchableOpacity
+                    style={[styles.optionBtn, { backgroundColor: isDark ? "#1a1a1a" : "#f2f2f2" }]}
+                    onPress={handeleMyOrders}
+                >
+                    <Text style={{ color: isDark ? "#fff" : "#000" }}>Đơn hàng của tôi</Text>
+                </TouchableOpacity>
                 <TouchableOpacity
                     style={[styles.optionBtn, { backgroundColor: isDark ? "#1a1a1a" : "#f2f2f2" }]}
                     onPress={handleChangeInfo}

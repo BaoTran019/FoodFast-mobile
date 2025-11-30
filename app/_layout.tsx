@@ -52,6 +52,9 @@ export default function RootLayout() {
           <Stack.Screen name="profile/changeInfo" options={{ headerShown: false }} />
           <Stack.Screen name="profile/changePassword" options={{ headerShown: false }} />
 
+          <Stack.Screen name="orders/myOrders" options={{ headerShown: false }} />
+          <Stack.Screen name="orders/orderDetail" options={{ headerShown: false }} />
+
         </Stack>
       </View>
       <StatusBar style="auto" />
