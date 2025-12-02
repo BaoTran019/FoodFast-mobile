@@ -1,14 +1,15 @@
-import { deleteOrder, updateOrderStatus } from "@/api/orders";
+import { completeDroneFlight, fetchDroneByOrderId } from "@/api/drone";
+import { updateOrderStatus } from "@/api/orders";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
-    Alert,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    useWindowDimensions,
-    View,
+  Alert,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  useWindowDimensions,
+  View,
 } from "react-native";
 
 const STATUS_LIST = [
@@ -24,19 +25,84 @@ export default function OrderDetailScreen() {
   const { width, height } = useWindowDimensions();
   const isLandscape = width > height;
 
+  const [droneId, setDroneId] = useState<string | null>(null);
+  const [droneDistance, setDroneDistance] = useState<number | null>(null);
+  const [droneLoading, setDroneLoading] = useState(false);
+  const [droneLat, setDroneLat] = useState<number | null>(null);
+  const [droneLng, setDroneLng] = useState<number | null>(null);
+
+
   const [orderData, setOrderData] = useState<any>(
     order ? JSON.parse(order as string) : null
   );
   const [loading, setLoading] = useState(false);
 
+  // --- Check drone vị trí khi order là delivering ---
+  useEffect(() => {
+    const checkDroneDistance = async () => {
+      if (!orderData?.id || orderData.status !== "delivering") return;
+      setDroneLoading(true);
+      try {
+        const res = await fetchDroneByOrderId(orderData.id);
+        if (res.success && res.drones) {
+          const drone = res.drones[0];
+          if (drone.lat && drone.lng && orderData.lat && orderData.lng) {
+            const distance = getDistanceFromLatLonInM(
+              orderData.lat,
+              orderData.lng,
+              drone.lat,
+              drone.lng
+            );
+            const droneId = drone?.id;
+            setDroneDistance(distance);
+            setDroneId(drone?.id ?? null);
+            setDroneLat(drone?.lat);
+            setDroneLng(drone?.lng);
+          }
+        }
+      } catch (err) {
+        console.error("Error fetching drone distance:", err);
+      } finally {
+        setDroneLoading(false);
+      }
+    };
+
+    checkDroneDistance();
+  }, [orderData]);
+
+  // --- Hàm Haversine tính khoảng cách (m) ---
+  function getDistanceFromLatLonInM(lat1: number, lon1: number, lat2: number, lon2: number) {
+    const R = 6371000;
+    const dLat = deg2rad(lat2 - lat1);
+    const dLon = deg2rad(lon2 - lon1);
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(deg2rad(lat1)) *
+      Math.cos(deg2rad(lat2)) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  }
+
+  function deg2rad(deg: number) {
+    return deg * (Math.PI / 180);
+  }
+
   // Xác nhận đã nhận hàng
   const handleConfirmDelivered = async () => {
     if (!orderData?.id) return;
+    if (!droneId) {
+      Alert.alert("Lỗi", "Drone chưa sẵn sàng");
+      return;
+    }
+
     setLoading(true);
     try {
       const res = await updateOrderStatus(orderData.id, "completed");
+      const res2 = await completeDroneFlight(droneId)
       setLoading(false);
-      if (res.success) {
+      if (res.success && res2.success) {
         Alert.alert("Thành công", "Đơn hàng đã được xác nhận!");
         setOrderData({ ...orderData, status: "completed" });
       } else {
@@ -63,11 +129,12 @@ export default function OrderDetailScreen() {
           onPress: async () => {
             setLoading(true);
             try {
-              const res = await deleteOrder(orderData.id);
+              const res = await updateOrderStatus(orderData.id, "cancelled");
               setLoading(false);
               if (res.success) {
                 Alert.alert("Thành công", "Đơn hàng đã bị hủy!");
                 router.back(); // quay về danh sách đơn hàng
+                setOrderData({ ...orderData, status: "cancelled" });
               } else {
                 Alert.alert("Lỗi", res.error || "Hủy đơn thất bại");
               }
@@ -128,6 +195,7 @@ export default function OrderDetailScreen() {
           <Text>Tên: {orderData.recipientName}</Text>
           <Text>SĐT: {orderData.recipientPhone}</Text>
           <Text>Địa chỉ: {orderData.shipping_address}</Text>
+          <Text>Tọa độ: {orderData.lat} - {orderData.lng}</Text>
 
           <Text style={[styles.sectionTitle, { marginTop: 12 }]}>
             Chi tiết món
@@ -135,7 +203,8 @@ export default function OrderDetailScreen() {
           {orderData.items?.map((item: any, idx: number) => (
             <View key={idx} style={styles.itemRow}>
               <Text>{item.name} x{item.quantity}</Text>
-              <Text>{formatPrice(item.price * item.quantity)}</Text>
+              <View style={{ flex: 1 }} />
+              <Text style={{ paddingRight: 13 }}>{formatPrice(item.price * item.quantity)}</Text>
             </View>
           ))}
           <Text style={[styles.total, { marginTop: 10 }]}>
@@ -182,16 +251,32 @@ export default function OrderDetailScreen() {
 
           {/* Button xác nhận đã nhận hàng */}
           {orderData.status === "delivering" && (
-            <TouchableOpacity
-              style={[styles.button, loading && { opacity: 0.6 }]}
-              onPress={handleConfirmDelivered}
-              disabled={loading}
-            >
-              <Text style={styles.buttonText}>
-                {loading ? "Đang xử lý..." : "Xác nhận đã nhận hàng"}
-              </Text>
-            </TouchableOpacity>
+            <View style={{ marginTop: 12 }}>
+              {droneLoading ? (
+                <Text>Đang kiểm tra vị trí drone...</Text>
+              ) : droneDistance !== null && droneDistance <= 50 ? (
+                <>
+                  <Text>
+                    Đơn hàng đã đến ({droneDistance?.toFixed(0) || "??"} m)
+                  </Text>
+                  <TouchableOpacity
+                    style={[styles.button, loading && { opacity: 0.6 }]}
+                    onPress={handleConfirmDelivered}
+                    disabled={loading}
+                  >
+                    <Text style={styles.buttonText}>
+                      {loading ? "Đang xử lý..." : "Xác nhận đã nhận hàng"}
+                    </Text>
+                  </TouchableOpacity>
+                </>
+              ) : (
+                <Text>
+                  Đơn hàng đang được vận chuyển ({droneDistance?.toFixed(0) || "??"} m)
+                </Text>
+              )}
+            </View>
           )}
+
 
           {/* Button hủy đơn hàng nếu pending */}
           {orderData.status === "pending" && (
@@ -227,7 +312,7 @@ const styles = StyleSheet.create({
   right: { flex: 1, marginTop: 20 },
 
   sectionTitle: { fontWeight: "700", marginBottom: 8, fontSize: 16 },
-  itemRow: { flexDirection: "row", justifyContent: "space-between", marginBottom: 4 },
+  itemRow: { flexDirection: "row", marginBottom: 4 },
   total: { fontWeight: "700", fontSize: 16 },
 
   timelineContainer: {

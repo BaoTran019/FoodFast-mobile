@@ -14,7 +14,7 @@ import {
     View,
 } from "react-native";
 
-const STATUS_LIST = ["pending", "processing", "delivering", "completed"];
+const STATUS_LIST = ["pending", "processing", "delivering", "completed", "cancelled"];
 
 export default function MyOrdersScreen() {
     const router = useRouter();
@@ -122,6 +122,13 @@ export default function MyOrdersScreen() {
     return (
         <View style={[styles.container, themeStyles.background]}>
             <Text style={[styles.title, themeStyles.text]}>Đơn hàng của tôi</Text>
+            {/* Button quay lại */}
+                  <TouchableOpacity
+                    style={styles.backButton}
+                    onPress={() => router.back()}
+                  >
+                    <Text style={styles.backButtonText}>← Quay lại</Text>
+                  </TouchableOpacity>
 
             {/* ⭐ FILTER BAR luôn nằm ngang kể cả landscape */}
             <View
@@ -175,7 +182,7 @@ const styles = StyleSheet.create({
         fontSize: 22,
         fontWeight: "700",
         textAlign: "center",
-        marginBottom: 20,
+        marginBottom: 7,
     },
 
     // ⭐ FILTER BAR — luôn nằm ngang và có wrap
@@ -234,6 +241,13 @@ const styles = StyleSheet.create({
         marginTop: 20,
         fontSize: 16,
     },
+
+    backButton: {
+    marginBottom: 10,
+    padding: 6,
+    alignSelf: "flex-start",
+  },
+  backButtonText: { fontSize: 16, color: "#007aff" },
 });
 
 // 🌙🌙🌙 Dark / Light theme 🌙🌙🌙

@@ -1,5 +1,6 @@
 import { CartItem } from "@/api/cart";
 import { createOrder } from "@/api/orders";
+import { getCoordinatesFromText } from "@/api/ors";
 import { useCart } from "@/context/cartContext";
 import { getUser } from "@/storage/user-storage";
 import { useNavigation, useRoute } from "@react-navigation/native";
@@ -17,6 +18,7 @@ import {
     useColorScheme,
 } from "react-native";
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
+
 
 interface RouteParams {
     restaurantId: string;
@@ -45,6 +47,11 @@ export default function PlaceOrderScreen() {
 
     const [loading, setLoading] = useState(false)
 
+    const [lat, setLat] = useState<number | null>(null);
+    const [lng, setLng] = useState<number | null>(null);
+    const [geoLoading, setGeoLoading] = useState(false);
+
+
     useEffect(() => {
         const loadUser = async () => {
             const stored = await getUser();
@@ -56,6 +63,27 @@ export default function PlaceOrderScreen() {
         };
         loadUser();
     }, []);
+
+    // Gọi ORS mỗi khi address thay đổi (debounce 600ms)
+    useEffect(() => {
+        if (!address || address.length < 5) return;
+
+        const timeout = setTimeout(async () => {
+            setGeoLoading(true);
+
+            const res = await getCoordinatesFromText(address);
+
+            if (res.success) {
+                setLat(res.lat!);
+                setLng(res.lng!);
+            }
+
+            setGeoLoading(false);
+        }, 600); // tránh spam API
+
+        return () => clearTimeout(timeout);
+    }, [address]);
+
 
     const handlePlaceOrder = async () => {
         const stored = await getUser();
@@ -84,9 +112,11 @@ export default function PlaceOrderScreen() {
             totalPrice,
             status: "pending" as const,
             recipientName,
-            recipientPhone: phone,      
+            recipientPhone: phone,
             shipping_address: address,
             createdAt: new Date().toISOString(),
+            lat: lat ?? 10.76143,
+            lng: lng ?? 106.68191,
         };
 
         try {
@@ -225,6 +255,19 @@ export default function PlaceOrderScreen() {
                         placeholder="Địa chỉ nhận hàng"
                         placeholderTextColor={isDark ? "#666" : "#999"}
                     />
+                    {geoLoading ? (
+                        <Text style={{ color: isDark ? "#aaa" : "#666", marginBottom: 10 }}>
+                            Đang tìm tọa độ...
+                        </Text>
+                    ) : (
+                        lat &&
+                        lng && (
+                            <Text style={{ color: isDark ? "#0f0" : "#090", marginBottom: 10 }}>
+                                Lat: {lat} — Lng: {lng}
+                            </Text>
+                        )
+                    )}
+
                 </View>
 
                 {filteredItems.length > 0 && (

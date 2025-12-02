@@ -16,11 +16,13 @@ export interface Order {
   restaurantName: string;
   items: OrderItem[];
   totalPrice: number;
-  status: "pending" | "processing" | "delivering" | "completed";
+  status: "pending" | "processing" | "delivering" | "completed" | "cancelled";
   recipientName: string;
   recipientPhone: string;       // sửa lại cho đúng backend
   shipping_address: string;     // sửa lại cho đúng backend
   createdAt?: any;
+  lat?: number;
+  lng?: number;
 }
 
 export interface ApiResponse<T = any> {
