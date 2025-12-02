@@ -11,12 +11,14 @@ export async function fetchMenu(restaurantId: string): Promise<MenuItem[]> {
     const json = await res.json();
 
     // Chuyển dữ liệu từ API về kiểu MenuItem
-    const items: MenuItem[] = (json.items || []).map((m: any) => ({
-      id: m.id,
-      name: m.name,
-      price: m.price,
-      description: m.description,
-    }));
+    const items: MenuItem[] = (json.items || [])
+      .filter((m: any) => m.available === true)
+      .map((m: any) => ({
+        id: m.id,
+        name: m.name,
+        price: m.price,
+        description: m.description,
+      }));
 
     return items;
   } catch (error) {
